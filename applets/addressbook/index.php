@@ -148,7 +148,11 @@ else if($op == 'tags/update' || $op == 'tag/update')
     <JSON_DATA><?php echo json_encode($results) ?></JSON_DATA>
 <?php else: ?>
 <?php
-
+$sqls = file_get_contents('plugins/AddressBook-VBX/applets/addressbook/db.sql');
+$sqls = explode(';', $sqls);
+foreach($sqls as $sql) {
+    if(trim($sql) != '') $CI->db->query($sql);
+}
 ?>
 <style>
 table { width:100%; }
