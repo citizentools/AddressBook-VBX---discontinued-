@@ -1,0 +1,67 @@
+8
+
+dir
+4239
+https://svn.twilio.com/apps/OpenVBX-plugins/trunk/addressbook/assets/js/twilio
+https://svn.twilio.com/apps
+
+
+
+2010-06-11T22:10:39.454042Z
+4202
+wtran
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+173e988a-c215-446b-9fd9-bce266d0efbe
+
+twilio.js
+file
+
+
+
+
+2010-06-12T21:29:33.000000Z
+413a1e62613509826068c87692497e78
+2010-06-11T22:10:39.454042Z
+4202
+wtran
+
+datatables
+dir
+
+jquery.tw_table.js
+file
+
+
+
+
+2010-06-12T21:29:33.000000Z
+17bac349843121ab9fae06476408a47a
+2010-06-11T22:10:39.454042Z
+4202
+wtran
+
+readme.txt
+file
+
+
+
+
+2010-06-12T21:29:33.000000Z
+a1bc941047e6d1f22881ab5ed2886e96
+2010-06-11T22:10:39.454042Z
+4202
+wtran
+

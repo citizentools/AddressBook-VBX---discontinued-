@@ -1,0 +1,15 @@
+{
+    "name": "Address Book",
+    "author": "Will Tran <wtran@twilio.com>",
+    "description": "Stores a list of contacts so you can call and text them.",
+    "links": [
+        {
+            "menu": "plugins",
+            "url": "addressbook",
+            "script": "applets/addressbook/index.php",
+            "label": "Address Book"
+        }
+    ],
+    "url": "http://twilio.com",
+    "disabled": false
+}
