@@ -365,11 +365,11 @@ var base_url = '<?php echo base_url() ?>';
 var user_numbers = <?php echo json_encode($user_numbers) ?>;
 </script>
 
-<?php $CI->template->add_js('plugins/addressbook/assets/js/twilio/datatables/jquery.dataTables.min.js'); ?>
-<?php $CI->template->add_js('plugins/addressbook/assets/js/twilio/twilio.js'); ?>
-<?php $CI->template->add_js('plugins/addressbook/assets/js/twilio/jquery.tw_table.js'); ?>
+<?php $CI->template->add_js('plugins/AddressBook-VBX/assets/js/twilio/datatables/jquery.dataTables.min.js'); ?>
+<?php $CI->template->add_js('plugins/AddressBook-VBX/assets/js/twilio/twilio.js'); ?>
+<?php $CI->template->add_js('plugins/AddressBook-VBX/assets/js/twilio/jquery.tw_table.js'); ?>
 
-<?php $CI->template->add_js('plugins/addressbook/applets/addressbook/js/index_page.js'); ?>
-<?php $CI->template->add_js('plugins/addressbook/applets/addressbook/js/index_init.js'); ?>
+<?php $CI->template->add_js('plugins/AddressBook-VBX/applets/addressbook/js/index_page.js'); ?>
+<?php $CI->template->add_js('plugins/AddressBook-VBX/applets/addressbook/js/index_init.js'); ?>
 
 <?php endif; ?>
