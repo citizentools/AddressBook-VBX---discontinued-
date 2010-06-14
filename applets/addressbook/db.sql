@@ -1,4 +1,4 @@
-REATE TABLE `addressbook_contacts` (
+CREATE TABLE IF NOT EXISTS `addressbook_contacts` (
 `id` int(11) NOT NULL auto_increment,
 `first_name` varchar(150) default NULL,
 `last_name` varchar(150) default NULL,
@@ -23,7 +23,7 @@ REATE TABLE `addressbook_contacts` (
 PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE `addressbook_groups` (
+CREATE TABLE IF NOT EXISTS `addressbook_groups` (
 `id` int(11) NOT NULL auto_increment,
 `name` varchar(150) default NULL,
 `color` varchar(30) default NULL,
@@ -33,7 +33,7 @@ CREATE TABLE `addressbook_groups` (
 PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
-CREATE TABLE `addressbook_tags` (
+CREATE TABLE IF NOT EXISTS `addressbook_tags` (
 `id` int(11) NOT NULL auto_increment,
 `name` varchar(150) default NULL,
 `count` int(11) default NULL,
