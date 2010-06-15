@@ -201,6 +201,16 @@ var index_page = {
 
         switch(name) {
             case 'browse_contacts':
+                function blur_edit_row(e) {
+                    console.log($(e.target).parent('#browse_contacts tbody tr'));
+
+                    if(!$(e.target).parent('#browse_contacts tbody tr')) {
+                        $('#browse_contacts tbody tr input[type="text"]').addClass('edit_inactive').removeClass('edit_active').attr('readonly', 'readonly');
+                        $(document).unbind('click', blur_edit_row);
+                    }
+                }
+
+                // Clicking the call button
                 $('#browse_contacts tbody tr').live('click', function(e) {
                     var target = $(e.target);
                     var from = $('div.call-dialog select[name="callerid"] option')[0].value;
@@ -226,12 +236,19 @@ var index_page = {
                             },
                             'text'
                         );
+
+                    // Clicking the SMS button
                     } else if(target.attr('class').match(/sms_[0-9]+_btn/)) {
                         var phone = target.attr('class').match(/sms_([0-9+]+)_btn/)[1];
                         alert('SMS ' + phone);
+
+                    // Default should expand and allow edit fields for active row
                     } else {
-                        $(this).css('background-color', 'yellow');
+                        $(this).find('input[type="text"]').removeClass('edit_inactive').addClass('edit_active').attr('readonly', '');
+                        $(document).bind('click', blur_edit_row);
                     }
+
+                    return false;
                 });
 
                 $('#browse_contacts input.new_contact_btn').click(function() {

@@ -160,7 +160,8 @@ div.dataTables_processing { position:absolute; top:10px; right:40px; }
 div.dataTables_length { float:left; visibility:hidden; }
 div.dataTables_filter { text-align:right; }
 
-input.edit_inactive { background-color:inherit; border:0px; }
+input.edit_active { border:0px; margin:0px; margin-bottom:2px; padding:1px; }
+input.edit_inactive { background-color:inherit; border:0px; margin:0px; margin-bottom:2px; padding:1px; }
 
 div.data { display:none; }
 
@@ -188,6 +189,7 @@ span.err { color:red; font-size:10px; display:block; margin-bottom:3px; }
 #browse_contacts tr input[name="title"] { display:block; font-size:10px; width:95%; }
 #browse_contacts ul.letter_filter li { padding:2px; display:block; }
 #browse_contacts ul.letter_filter li:hover { background-color:#ccc; cursor:pointer; }
+#browse_contacts input.import_btn { float:right; margin-right:5px; }
 #browse_contacts input.new_contact_btn { float:right; }
 
 #list_of_groups { display:none; }
@@ -295,6 +297,7 @@ ul.errors.li { margin:2px; }
                 <div id="browse_contacts" class="section">
                     <!-- {{{ -->
                     <input class="new_contact_btn" type="button" value=" + " />
+                    <input class="import_btn" type="button" value="Import" />
                     <h3>Browse Contacts</h3>
 
                     <div id="new_contact_form_template" style="display:none;">
