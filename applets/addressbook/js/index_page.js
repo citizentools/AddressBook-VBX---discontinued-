@@ -1,3 +1,10 @@
+var placeholder_support = 'placeholder' in document.createElement('input');
+if(!placeholder_support) {
+    $('input[placeholder]').each(function() { 
+        this.defaultValue = $(this).attr('placeholder'); 
+    });
+}
+
 var index_page = {
     browse_contacts_table: null,
     recent_contacts_table: null,
@@ -38,7 +45,7 @@ var index_page = {
                     { sName:'email', fnRender:function(oObj) {
                         return '<input name="email" class="edit_inactive" type="text" value="' + oObj.aData[3] + '" readonly="readonly" placeholder="Email" />' +
                         '<div style="text-align:right; margin-top:10px;">' +
-                            '<input class="cancel_btn edit_inactive" type="button" value="Cancel" />' +
+                            '<input class="cancel_btn edit_inactive" type="button" value="Cancel" /> ' +
                             '<input class="save_btn edit_inactive" type="button" value="Save" />' +
                         '</div>' +
                         '<div class="data">' +
