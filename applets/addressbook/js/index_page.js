@@ -12,12 +12,13 @@ var index_page = {
             base_url + 'p/addressbook?op=contacts/get',
             { onServerData: onServerCall, sort_by:[[1, 'asc']] },
             {
+                bAutoWidth: true,
                 aoColumns: [
                     { sName:'profile_img', sWidth:'50px', fnRender:function(oObj) { return '<div class="profile_img"></div>'; } },
                     { sName:'first_name', fnRender:function(oObj) { 
-                        return '<input name="name" class="edit_inactive" type="text" value="' + oObj.aData[1] + ' ' + oObj.aData[4] + '" readonly="readonly" />' +
-                        '<input name="title" class="edit_inactive" type="text" value="' + oObj.aData[6] + '" readonly="readonly" />' +
-                        '<input name="company" class="edit_inactive" type="text" value="' + oObj.aData[7] + '" readonly="readonly" />';
+                        return '<input name="name" class="edit_inactive" type="text" value="' + oObj.aData[1] + ' ' + oObj.aData[4] + '" readonly="readonly" place="Name" />' +
+                        '<input name="title" class="edit_inactive" type="text" value="' + oObj.aData[6] + '" readonly="readonly" placeholder="Title" />' +
+                        '<input name="company" class="edit_inactive" type="text" value="' + oObj.aData[7] + '" readonly="readonly" placeholder="Company" />';
                     }},
                     { sName:'phone', fnRender:function(oObj) {
                         var phone = oObj.aData[2];
@@ -25,7 +26,7 @@ var index_page = {
                         if(parsed) var text_phone  = '(' + parsed[1] + ') ' + parsed[2] + '-' + parsed[3];
                         else var text_phone = phone;
 
-                        var html = '<input name="phone" class="edit_inactive" type="text" value="' + text_phone + '" readonly="readonly" />'; 
+                        var html = '<input name="phone" class="edit_inactive" type="text" value="' + text_phone + '" readonly="readonly" placeholder="Phone" />'; 
 
                         if(phone.trim() != '') 
                             html = html + '<br />' +
@@ -35,9 +36,13 @@ var index_page = {
                         return html;
                     }},
                     { sName:'email', fnRender:function(oObj) {
-                        return '<input name="email" class="edit_inactive" type="text" value="' + oObj.aData[3] + '" readonly="readonly" />' +
+                        return '<input name="email" class="edit_inactive" type="text" value="' + oObj.aData[3] + '" readonly="readonly" placeholder="Email" />' +
+                        '<div style="text-align:right; margin-top:10px;">' +
+                            '<input class="cancel_btn edit_inactive" type="button" value="Cancel" />' +
+                            '<input class="save_btn edit_inactive" type="button" value="Save" />' +
+                        '</div>' +
                         '<div class="data">' +
-                            '<span class="id">' + oObj.aData[5] + '</span>' +
+                            '<input name="id" value="' + oObj.aData[5] + '" />' +
                         '</div>';
                     }},
                     { sName:'last_name', bVisible:false },
@@ -57,7 +62,11 @@ var index_page = {
                     { sName:'created', bVisible:false },
                     { sName:'updated', bVisible:false },
                     { sName:'user_id', bVisible:false }
-                ]
+                ],
+                fnRowCallback: function(nRow, aData, iDisplayIndex) {
+                    $(nRow).addClass('contact_' + aData[5]);
+                    return nRow;
+                }
             }
         ); // }}}
 
@@ -152,6 +161,36 @@ var index_page = {
         that.render();
     },
 
+    call_number: function(phone) {
+        var callerid = $('select[name="from"] option').get(0).value;
+
+        $.post(
+            base_url + '/messages/call', 
+            {
+                callerid:callerid,
+                to:phone,
+                target:base_url+'messages/call'
+            },
+            function(resp) { },
+            'text'
+        );
+    },
+
+    send_msg: function(phone, msg) {
+        var callerid = $('select[name="from"] option').get(0).value;
+
+        $.post(
+            base_url + '/messages/sms', 
+            {
+                from:callerid,
+                to:phone,
+                content:msg
+            },
+            function(resp) { },
+            'text'
+        );
+    },
+
     submit_new_contact: function() 
     { // {{{
         var that = index_page;
@@ -196,64 +235,131 @@ var index_page = {
         }
     }, // }}}
 
+    submit_update_contact: function(tr)
+    {
+        var that = index_page;
+        var tr = $(tr);
+        var form_inputs = $('*[name]', tr);
+
+        $.post(
+            base_url + 'p/addressbook?op=contact/update',
+            form_inputs.serialize(),
+            function(resp) {
+                try {
+                    resp = resp.match(/JSON_DATA\>(.*)\<\/JSON_DATA/)[1];
+                    resp = eval("(" + resp + ")");
+                    if(resp.key == 'SUCCESS') {
+                        that.browse_contacts_table.engine_obj.fnDraw();
+                    }
+                } catch(e) {}
+            },
+            'text'
+        );
+    },
+
+    contact_active: function(tr) {
+        var tr = $(tr);
+
+        tr.find('input.edit_inactive').removeClass('edit_inactive').addClass('edit_active').attr('readonly', '');
+        tr.find('input.save_btn, input.cancel_btn').addClass('edit_active');
+    },
+
+    contact_inactive: function(tr) {
+        var tr = $(tr);
+
+        tr.find('input.edit_active').removeClass('edit_active').addClass('edit_inactive');
+    },
+
     render: function(name) {
         var that = index_page;
 
         switch(name) {
             case 'browse_contacts':
-                function blur_edit_row(e) {
-                    console.log($(e.target).parent('#browse_contacts tbody tr'));
-
-                    if(!$(e.target).parent('#browse_contacts tbody tr')) {
-                        $('#browse_contacts tbody tr input[type="text"]').addClass('edit_inactive').removeClass('edit_active').attr('readonly', 'readonly');
-                        $(document).unbind('click', blur_edit_row);
-                    }
-                }
-
-                // Clicking the call button
-                $('#browse_contacts tbody tr').live('click', function(e) {
+                // Contact events
+                $('#browse_contacts tbody tr[class!="new_contact_form"]').live('click', function(e) {
                     var target = $(e.target);
                     var from = $('div.call-dialog select[name="callerid"] option')[0].value;
 
-                    if(target.attr('class').match(/call_[0-9+]+_btn/)) {
+                    // Save button
+                    if(target.hasClass('save_btn')) {
+                        that.submit_update_contact(this); 
+                    }
+
+                    // Cancel button
+                    else if(target.hasClass('cancel_btn')) {
+                        $('input', this).each(function() { this.value = this.defaultValue; });
+                        $(this).removeClass('edit_active');
+                        that.contact_inactive(this);
+                    }
+
+                    // Clicking the call button
+                    else if(target.attr('class').match(/call_[0-9+]+_btn/)) {
                         var phone = target.attr('class').match(/call_([0-9+]+)_btn/)[1];
 
-                        if(user_numbers && user_numbers[0]) {
-                            var callerid = user_numbers[0].value;
-                        } else {
-                            var callerid = from;
-                        }
+                        $('div.send_sms').remove();
 
-                        $.post(
-                            base_url + '/messages/call', 
-                            {
-                                callerid:callerid,
-                                from:from,
-                                to:phone
-                            },
-                            function(resp) {
-                                console.log(resp);
-                            },
-                            'text'
-                        );
+                        var calling_el = $('<div></div>')
+                            .html('Ready to call? ' + 
+                                '<input class="cancel_btn" type="button" value="Cancel" /> ' +
+                                '<input class="call_btn" type="button" value="Call" />')
+                            .css({ top:target.offset().top, left:target.offset().left, position:'absolute' })
+                            .addClass('call_phone')
+                            .appendTo($('div.vbx-content-main'));
 
+                        var tr = $(this);
+                        calling_el.find('input.cancel_btn').click(function() { 
+                            calling_el.remove(); 
+                            tr.find('input[class^="call_"], input[class^="sms_"]').css('display', 'inline-block');
+                        });
+                        calling_el.find('input.call_btn').click(function() { 
+                            calling_el.remove(); 
+                            tr.find('input[class^="call_"], input[class^="sms_"]').css('display', 'inline-block');
+                            that.call_number(phone); 
+                        });
+
+                        $(this).find('input[class^="call_"], input[class^="sms_"]').css('display', 'none');
+/*
+*/
                     // Clicking the SMS button
                     } else if(target.attr('class').match(/sms_[0-9]+_btn/)) {
                         var phone = target.attr('class').match(/sms_([0-9+]+)_btn/)[1];
-                        alert('SMS ' + phone);
+
+                        var send_sms_el = $('<div></div>')
+                            .html('<input name="msg" type="text" /> ' +
+                                '<input class="cancel_btn" type="button" value="Cancel" />' +
+                                '<input class="send_btn" type="button" value="Send" />')
+                            .addClass('send_sms')
+                            .css({ top:target.offset().top, left:target.offset().left, position:'absolute' })
+                            .appendTo($('div.vbx-content-main'));
+
+                        send_sms_el.find('input.cancel_btn').click(function() { 
+                            send_sms_el.remove(); 
+                        });
+
+                        send_sms_el.find('input.send_btn').click(function() {
+                            var msg = send_sms_el.find('input[name="msg"]').val();
+                            that.send_msg(phone, msg);
+                            send_sms_el.remove();
+                        });
 
                     // Default should expand and allow edit fields for active row
                     } else {
-                        $(this).find('input[type="text"]').removeClass('edit_inactive').addClass('edit_active').attr('readonly', '');
-                        $(document).bind('click', blur_edit_row);
+                        $('#browse_contacts table.datatable tbody tr.new_contact_form').remove();
+                        that.contact_inactive($('#browse_contacts tr.edit_active').removeClass('edit_active'));
+                        $(this).addClass('edit_active');
+                        that.contact_active(this);
                     }
 
                     return false;
                 });
 
+                // New contact button
                 $('#browse_contacts input.new_contact_btn').click(function() {
                     var new_contact_el = $('#new_contact_form_template tr').clone();
                     var table_el = $('#browse_contacts table.datatable tbody');
+
+                    that.contact_inactive(table_el);
+
                     table_el.find('tr.new_contact_form').remove();
                     new_contact_el.addClass('new_contact_form').prependTo(table_el);
 
@@ -264,6 +370,13 @@ var index_page = {
                     new_contact_el.find('input.save_btn').click(function() {
                         that.submit_new_contact();
                     });
+                });
+
+                $('#browse_contacts ul.letter_filter li').click(function() {
+                    var target = $(this);
+                    target.parent('ul').find('li.selected').removeClass('selected');
+                    target.addClass('selected');
+                    that.browse_contacts_table.engine_obj.fnFilter(target.text() == 'All' ? '' : target.text());
                 });
                 break;
 

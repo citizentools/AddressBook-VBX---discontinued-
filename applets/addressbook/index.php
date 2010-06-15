@@ -17,6 +17,25 @@ function get_data($table, $R=NULL)
             $CI->db->order_by($fields[$R['iSortCol_'.$i]], $R['sSortDir_'.$i]);
         }
     }
+
+    if($table == 'addressbook_contacts') {
+        if(@$R['sSearch']) {
+            $s = $R['sSearch'];
+
+            if(is_numeric($s) && strlen($s) >= 7) {
+                $CI->db->like('phone', $s);
+            } else if(strlen($s) == 1) {
+                $CI->db->like('first_name', $s, 'after');
+            } else {
+                $CI->db->like('first_name', $s);
+                $CI->db->or_like('last_name', $s);
+                $CI->db->or_like('email', $s);
+                $CI->db->or_like('title', $s);
+                $CI->db->or_like('phone', $s);
+            }
+        }
+    }
+
     $CI->db->stop_cache();
 
     $total = $CI->db->count_all_results($table);
@@ -106,8 +125,59 @@ else if($op == 'contacts/new' || $op =='contact/new')
 } // }}}
 
 else if($op == 'contacts/update' || $op == 'contact/update')
-{
-}
+{ // {{{
+    try {
+        $contact_id = $_REQUEST['id'];
+        $name = @$_REQUEST['name'];
+        $title = @$_REQUEST['title'];
+        $company = @$_REQUEST['company'];
+        $phone = @$_REQUEST['phone'];
+        $email = @$_REQUEST['email'];
+
+        $first_name = trim(substr($name, 0, strrpos($name, ' '))); 
+        $last_name = trim(substr($name, strrpos($name, ' ') + 1)); 
+
+        $update_contact = array(
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'title' => $title,
+            'company' => $company,
+            'phone' => preg_replace('/[^0-9+]+/', '', $phone),
+            'email' => $email,
+            'updated' => date('Y-m-d H:i:s')
+        );
+
+        if($CI->db->update('addressbook_contacts', $update_contact, array('id' => $contact_id))) {
+            throw new Exception('SUCCESS');
+        } else {
+            throw new Exception('DB_ERROR');
+        }
+
+        throw new Exception('EXCEPTION');
+    } catch(Exception $e) {
+        switch($e->getMessage()) {
+            case 'DB_ERROR':
+                break;
+
+            case 'SUCCESS':
+                $results = array(
+                    'msg' => 'Contact updated.',
+                    'key' => 'SUCCESS',
+                    'type' => 'success'
+                );
+                break;
+
+            default:
+            case 'EXCEPTION':
+                $results = array(
+                    'msg' => 'Cannout update contact due to an exception error.',
+                    'key' => 'EXCEPTION',
+                    'type' => 'error'
+                );
+                break;
+        }
+    }
+} // }}}
 
 else if($op == 'groups/del' || $op == 'group/del')
 {
@@ -160,8 +230,10 @@ div.dataTables_processing { position:absolute; top:10px; right:40px; }
 div.dataTables_length { float:left; visibility:hidden; }
 div.dataTables_filter { text-align:right; }
 
-input.edit_active { border:0px; margin:0px; margin-bottom:2px; padding:1px; }
-input.edit_inactive { background-color:inherit; border:0px; margin:0px; margin-bottom:2px; padding:1px; }
+input[type="button"].edit_inactive { visibility:hidden; }
+input[type="button"].edit_active { visibility:visible; }}
+input[type="text"].edit_active { border:0px; margin:0px; margin-bottom:2px; padding:1px; }
+input[type="text"].edit_inactive { background-color:inherit; border:0px; margin:0px; margin-bottom:2px; padding:1px; }
 
 div.data { display:none; }
 
@@ -183,14 +255,17 @@ span.err { color:red; font-size:10px; display:block; margin-bottom:3px; }
 
 #browse_contacts th { padding:0px; visibility:hidden; }
 #browse_contacts td { vertical-align:top; }
-#browse_contacts div.profile_img { border:1px solid gray; width:50px; height:50px; }
+#browse_contacts div.profile_img { background:url(<?php echo base_url() ?>plugins/AddressBook-VBX/assets/img/profile_img.jpg); border:1px solid gray; width:50px; height:50px; }
 #browse_contacts tr input[name="name"] { width:95%; }
 #browse_contacts tr input[name="company"] { display:block; font-size:10px; width:95%; }
 #browse_contacts tr input[name="title"] { display:block; font-size:10px; width:95%; }
-#browse_contacts ul.letter_filter li { padding:2px; display:block; }
+#browse_contacts tr.edit_active { background-color:#C2DBEF; }
+#browse_contacts ul.letter_filter li { padding:2px; display:block; text-align:center; }
+#browse_contacts ul.letter_filter li.selected { background-color:#C2DBEF; }
 #browse_contacts ul.letter_filter li:hover { background-color:#ccc; cursor:pointer; }
 #browse_contacts input.import_btn { float:right; margin-right:5px; }
 #browse_contacts input.new_contact_btn { float:right; }
+
 
 #list_of_groups { display:none; }
 #list_of_groups th { padding:0px; visibility:hidden; }
@@ -202,7 +277,7 @@ span.err { color:red; font-size:10px; display:block; margin-bottom:3px; }
 
 #recent_contacts { margin-top:0px; }
 #recent_contacts th { padding:0px; visibility:hidden; }
-#recent_contacts div.profile_img { border:1px solid gray; width:50px; height:50px; }
+#recent_contacts div.profile_img { background:url(<?php echo base_url() ?>plugins/AddressBook-VBX/assets/img/profile_img.jpg); border:1px solid gray; width:50px; height:50px; }
 #recent_contacts tr span.company { display:block; font-size:10px;  }
 #recent_contacts tr span.title { display:block; font-size:10px; }
 
@@ -297,14 +372,13 @@ ul.errors.li { margin:2px; }
                 <div id="browse_contacts" class="section">
                     <!-- {{{ -->
                     <input class="new_contact_btn" type="button" value=" + " />
-                    <input class="import_btn" type="button" value="Import" />
+                    <input class="import_btn" type="button" value="Import" style="display:none;" />
                     <h3>Browse Contacts</h3>
 
                     <div id="new_contact_form_template" style="display:none;">
                         <table>
                             <tr>
                                 <td>
-                                    <form>
                                     <div class="profile_img"></div>
                                 </td>
                                 <td>
@@ -316,13 +390,12 @@ ul.errors.li { margin:2px; }
                                     <input name="phone" type="text" placeholder="Phone" />
                                 </td>
                                 <td>
-                                    <div style="float:right; text-align:right;">
-                                        <input class="cancel_btn" type="button" value="Cancel" /><br />
+                                    <input name="email" type="text" placeholder="Email" />
+
+                                    <div style="text-align:right; margin-top:10px;">
+                                        <input class="cancel_btn" type="button" value="Cancel" />
                                         <input class="save_btn" type="button" value="Save" />
                                     </div>
-
-                                    <input name="email" type="text" placeholder="Email" />
-                                    </form>
                                 </td>
                             </tr>
                         </table>
@@ -331,6 +404,7 @@ ul.errors.li { margin:2px; }
                     <div style="display:table; width:100%;">
                         <div style="display:table-cell; padding-right:10px;">
                             <ul class="letter_filter" style="width:20px; display:block;">
+                                <li class="selected">All</li>
                                 <?php foreach(range('A', 'Z') as $letter): ?>
                                 <li><?php echo $letter ?></li>
                                 <?php endforeach; ?>
