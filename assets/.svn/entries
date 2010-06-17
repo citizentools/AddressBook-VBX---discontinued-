@@ -1,37 +1,0 @@
-8
-
-dir
-4239
-https://svn.twilio.com/apps/OpenVBX-plugins/trunk/addressbook/assets
-https://svn.twilio.com/apps
-
-
-
-2010-06-11T22:10:39.454042Z
-4202
-wtran
-
-
-svn:special svn:externals svn:needs-lock
-
-
-
-
-
-
-
-
-
-
-
-173e988a-c215-446b-9fd9-bce266d0efbe
-
-css
-dir
-
-img
-dir
-
-js
-dir
-

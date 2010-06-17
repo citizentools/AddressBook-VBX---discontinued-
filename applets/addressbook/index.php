@@ -63,13 +63,187 @@ function get_data($table, $R=NULL)
 } // }}}
 
 if($op == 'contacts/del' || $op == 'contact/del')
-{
-}
+{ // {{{
+    try {
+        $contact_id = $_REQUEST['id'];
+
+        if($CI->db->delete('addressbook_contacts', array('id' => $contact_id))) {
+            throw new Exception('SUCCESS');
+        }
+
+        throw new Exception('EXCEPTION');
+    } catch(Exception $e) {
+        switch($e->getMessage()) {
+            case 'SUCCESS':
+                $results = array(
+                    'msg' => 'Contact deleted.',
+                    'key' => 'SUCCESS',
+                    'type' => 'success'
+                );
+                break;
+
+            default:
+            case 'EXCEPTION':
+                $results = array(
+                    'msg' => 'Cannot delete contact due to an exceptions error.',
+                    'key' => 'EXCEPTION',
+                    'type' => 'error'
+                );
+                break;
+        }
+    }
+} // }}}
 
 else if($op == 'contacts/get' || $op == 'contact/get')
 { // {{{
     $results = get_data('addressbook_contacts');
 } // }}}
+
+else if($op == 'contacts/import' || $op == 'contact/import') 
+{
+    try {
+        $source = @$_REQUEST['source'];
+        $email = @$_REQUEST['email'];
+        $password = @$_REQUEST['password'];
+        $errors = array();
+
+        if(empty($source)) {
+            $errors[] = array(
+                'name' => 'source',
+                'msg' => 'Source is required.'
+            );
+        }
+
+        if(empty($email)) {
+            $errors[] = array(
+                'name' => 'email',
+                'msg' => 'Email is required.'
+            );
+        }
+
+        if(empty($password)) {
+            $errors[] = array(
+                'name' => 'password',
+                'msg' => 'Password is reuired.'
+            );
+        }
+
+        if(!empty($errors)) throw new Exception('FORM_ERRORS');
+
+        if($source == 'gmail') {
+            // Get authorization key
+            $ch = curl_init();
+
+            $params = array(
+                'accountType' => 'HOSTED_OR_GOOGLE',
+                'Email' => $email,
+                'Passwd' => $password,
+                'service' => 'cp',
+                'source' => 'twilio-addressBookVBX-1'
+            );
+
+            curl_setopt_array($ch, array(
+                CURLOPT_HEADER => FALSE,
+                CURLOPT_URL => 'https://www.google.com/accounts/ClientLogin',
+                CURLOPT_FOLLOWLOCATION => TRUE,
+                CURLOPT_RETURNTRANSFER => TRUE,
+                CURLOPT_POSTFIELDS => http_build_query($params)
+            ));
+
+            $results = curl_exec($ch);
+            $ch_info = curl_getinfo($ch);
+            $ch_error = curl_error($ch);
+
+            if($ch_info['http_code'] == 200) {
+                preg_match('/Auth=(.*)/', $results, $matches);
+                $auth_key = $matches[1];
+            } else {
+                $errors[] = array(
+                    'name' => 'password',
+                    'msg' => 'Invalid Google credentials.'
+                );
+                throw new Exception('FORM_ERRORS');
+            }
+            curl_close($ch);
+
+            // Get a list of contacts
+            $ch = curl_init();
+
+            curl_setopt_array($ch, array(
+                CURLOPT_URL => 'http://www.google.com/m8/feeds/contacts/'.$email.'/full?alt=json&max-results=1000',
+                CURLOPT_HEADER => FALSE,
+                CURLOPT_FOLLOWLOCATION => TRUE,
+                CURLOPT_RETURNTRANSFER => TRUE,
+                CURLOPT_HTTPHEADER => array('Authorization: GoogleLogin auth='.$auth_key)
+            ));
+
+            $results = curl_exec($ch);
+            $ch_info = curl_getinfo($ch);
+            $ch_error = curl_error($ch);
+
+            if($ch_info['http_code'] == 200) {
+                $results = json_decode($results);
+                $new_contact = array();
+                foreach($results->feed->entry as $contact) {
+                    $name = $contact->title->{'$t'};
+                    if(!empty($name)) {
+                        $space = strrpos($name, ' ');
+                        if($space === FALSE) {
+                            $new_contact['first_name'] = $name;
+                        } else {
+                            $new_contact['first_name'] = substr($name, 0, $space);
+                            $new_contact['last_name'] = substr($name, $space + 1);
+                        }
+                    }
+
+                    $phone = $contact->{'gd$phoneNumber'}[0]->{'$t'};
+                    if(!empty($phone)) $new_contact['phone'] = preg_replace('/[^0-9+]+/', '', $phone);
+
+                    $email = $contact->{'gd$email'}[0]->address;
+                    if(!empty($email)) $new_contact['email'] = $email;
+
+                    $CI->db->insert('addressbook_contacts', (array) $new_contact);
+                }
+
+                throw new Exception('SUCCESS');
+            } 
+        } else if($source == 'yahoo') {
+        } else if($source == 'msn') {
+        }
+
+        throw new Exception('EXCEPTION');
+    } catch(Exception $e) {
+        switch($e->getMessage()) {
+            case 'FORM_ERRORS':
+                $results = array(
+                    'msg' => 'Canoot import contacts due to form validation errors.',
+                    'key' => 'FORM_ERRORS',
+                    'type' => 'error',
+                    'data' => array(
+                        'errors' => $errors
+                    )
+                );
+                break;
+
+            case 'SUCCESS':
+                $results = array(
+                    'msg' => 'Contact imported',
+                    'key' => 'SUCCESS',
+                    'type' => 'success'
+                );
+                break;
+
+            default:
+            case 'EXCEPTION':
+                $results = array(
+                    'msg' => 'Cannot import contacts due to an exceptions error.',
+                    'key' => 'EXCEPTION',
+                    'type' => 'error'
+                );
+                break;
+        }
+    }
+}
 
 else if($op == 'contacts/new' || $op =='contact/new') 
 { // {{{
@@ -266,6 +440,11 @@ span.err { color:red; font-size:10px; display:block; margin-bottom:3px; }
 #browse_contacts input.import_btn { float:right; margin-right:5px; }
 #browse_contacts input.new_contact_btn { float:right; }
 
+#import_contacts div.import_source a { border:3px solid transparent; display:inline-block;margin-right:20px; height:50px; padding:3px; vertical-align:middle; }
+#import_contacts div.import_source a:hover { border-color:#C2DBEF; cursor:pointer; }
+#import_contacts div.import_source a.selected { border-color:#C2DBEF; cursor:pointer; }
+#import_contacts div.import_source a img { width:150px; vertical-align:middle; }
+#import_contacts div.import_form { margin-top:20px; }
 
 #list_of_groups { display:none; }
 #list_of_groups th { padding:0px; visibility:hidden; }
@@ -372,8 +551,33 @@ ul.errors.li { margin:2px; }
                 <div id="browse_contacts" class="section">
                     <!-- {{{ -->
                     <input class="new_contact_btn" type="button" value=" + " />
-                    <input class="import_btn" type="button" value="Import" style="display:none;" />
+                    <input class="import_btn" type="button" value="Import" />
                     <h3>Browse Contacts</h3>
+
+                    <div id="import_contacts" class="dialog" title="Import Contacts" style="display:none;">
+                        <div class="import_source">
+                            <a class="gmail"><img src="http://www.google.com/intl/en_ALL/images/srpr/logo1w.png" /></a>
+                            <a class="yahoo"><img src="http://l.yimg.com/a/i/ww/met/yahoo_logo_us_061509.png" /></a>
+                            <a class="msn"><img src="http://col.stb.s-msn.com/i/BA/F7AFD6FD9371ACDFE1873AA174F5E.png" /></a>
+                        </div>
+                        <input name="source" type="hidden" />
+
+                        <div class="import_form">
+                            <fieldset class="vbx-input-container">
+                                <label class="field-label">
+                                    Email
+                                    <input name="email" class="medium" type="text" />
+                                </label>
+                            </fieldset>
+
+                            <fieldset class="vbx-input-container" style="margin-top:10px;">
+                                <label class="field-label">
+                                    Password
+                                    <input name="password" class="medium" type="password" />
+                                </label>
+                            </fieldset>
+                        </div>
+                    </div>
 
                     <div id="new_contact_form_template" style="display:none;">
                         <table>

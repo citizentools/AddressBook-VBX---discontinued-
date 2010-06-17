@@ -45,6 +45,7 @@ var index_page = {
                     { sName:'email', fnRender:function(oObj) {
                         return '<input name="email" class="edit_inactive" type="text" value="' + oObj.aData[3] + '" readonly="readonly" placeholder="Email" />' +
                         '<div style="text-align:right; margin-top:10px;">' +
+                            '<input class="del_btn edit_inactive" type="button" value="Delete" /> ' +
                             '<input class="cancel_btn edit_inactive" type="button" value="Cancel" /> ' +
                             '<input class="save_btn edit_inactive" type="button" value="Save" />' +
                         '</div>' +
@@ -70,6 +71,7 @@ var index_page = {
                     { sName:'updated', bVisible:false },
                     { sName:'user_id', bVisible:false }
                 ],
+                sLimit:20,
                 fnRowCallback: function(nRow, aData, iDisplayIndex) {
                     $(nRow).addClass('contact_' + aData[5]);
                     return nRow;
@@ -168,7 +170,8 @@ var index_page = {
         that.render();
     },
 
-    call_number: function(phone) {
+    call_number: function(phone) 
+    { // {{{
         var callerid = $('select[name="from"] option').get(0).value;
 
         $.post(
@@ -181,9 +184,10 @@ var index_page = {
             function(resp) { },
             'text'
         );
-    },
+    }, // }}}
 
-    send_msg: function(phone, msg) {
+    send_msg: function(phone, msg) 
+    { // {{{
         var callerid = $('select[name="from"] option').get(0).value;
 
         $.post(
@@ -196,6 +200,91 @@ var index_page = {
             function(resp) { },
             'text'
         );
+    }, // }}}
+
+    submit_delete_contact: function(tr) 
+    { // {{{
+        var that = index_page;
+        var tr = $(tr);
+        var id = tr.find('input[name="id"]').val();
+
+        $.post(
+            base_url + 'p/addressbook?op=contact/del',
+            { 'id':id },
+            function(resp) {
+                try {
+                    resp = resp.match(/JSON_DATA\>(.*)\<\/JSON_DATA/)[1];
+                    resp = eval("(" + resp + ")");
+                    if(resp.key == 'SUCCESS') {
+                        that.browse_contacts_table.engine_obj.fnDraw();
+                    }
+                } catch(e) {}
+            },
+            'text'
+        );
+    }, // }}}
+
+    submit_import_contacts: function(dialog)
+    {
+        var form = $('#import_contacts'); 
+        var errors = [];
+
+        $('span.err', form).remove();
+
+        var source = form.find('input[name="source"]');
+        var password = form.find('input[name="password"]');
+        var email = form.find('input[name="email"]');
+
+        function parse_errors(errors) {
+            $.each(errors, function(k, v) {
+                if(v.name == 'password') $('<span></span>').addClass('err').html(v.msg).insertAfter(password);
+                else if(v.name == 'email') $('<span></span>').addClass('err').html(v.msg).insertAfter(email);
+                else if(v.name == 'source') $('<span></span>').addClass('err').html(v.msg).insertAfter(source);
+            })
+        }
+
+        if(source.val() == '') {
+            errors.push({
+                name:'source',
+                msg:'Source is required.'
+            });
+        }
+
+        if(email.val() == '') {
+            errors.push({
+                name:'email',
+                msg:'Email is required.'
+            });
+        }
+
+        if(password.val() == '') {
+            errors.push({
+                name:'password',
+                msg:'Password is required.'
+            });
+        }
+
+        if(errors.length == 0) {
+            $.post(
+                base_url + 'p/addressbook?op=contacts/import',
+                { password:password.val(), email:email.val(), source:source.val() },
+                function(resp) {
+                    resp = resp.match(/JSON_DATA\>(.*)\<\/JSON_DATA/)[1];
+                    console.log(resp);
+                    resp = eval("(" + resp + ")");
+                    if(resp.key == 'SUCCESS') {
+                        $(dialog).dialog('close');
+                    } else {
+                        if(resp.data.errors) {
+                            parse_errors(resp.data.errors);
+                        }
+                    }
+                },
+                'text'
+            );
+        } else {
+            parse_errors(errors);
+        }
     },
 
     submit_new_contact: function() 
@@ -243,7 +332,7 @@ var index_page = {
     }, // }}}
 
     submit_update_contact: function(tr)
-    {
+    { // {{{
         var that = index_page;
         var tr = $(tr);
         var form_inputs = $('*[name]', tr);
@@ -262,20 +351,22 @@ var index_page = {
             },
             'text'
         );
-    },
+    }, // }}}
 
-    contact_active: function(tr) {
+    contact_active: function(tr) 
+    { // {{{
         var tr = $(tr);
 
         tr.find('input.edit_inactive').removeClass('edit_inactive').addClass('edit_active').attr('readonly', '');
         tr.find('input.save_btn, input.cancel_btn').addClass('edit_active');
-    },
+    }, // }}}
 
-    contact_inactive: function(tr) {
+    contact_inactive: function(tr) 
+    { // {{{
         var tr = $(tr);
 
         tr.find('input.edit_active').removeClass('edit_active').addClass('edit_inactive');
-    },
+    }, // }}}
 
     render: function(name) {
         var that = index_page;
@@ -290,6 +381,11 @@ var index_page = {
                     // Save button
                     if(target.hasClass('save_btn')) {
                         that.submit_update_contact(this); 
+                    }
+
+                    // Delete button
+                    else if(target.hasClass('del_btn')) {
+                        that.submit_delete_contact(this);
                     }
 
                     // Cancel button
@@ -325,8 +421,7 @@ var index_page = {
                         });
 
                         $(this).find('input[class^="call_"], input[class^="sms_"]').css('display', 'none');
-/*
-*/
+
                     // Clicking the SMS button
                     } else if(target.attr('class').match(/sms_[0-9]+_btn/)) {
                         var phone = target.attr('class').match(/sms_([0-9+]+)_btn/)[1];
@@ -360,6 +455,32 @@ var index_page = {
                     return false;
                 });
 
+                // Import source
+                $('#browse_contacts #import_contacts div.import_source a').click(function() {
+                    var target = $(this);
+                    var form = $('#import_contacts');
+
+                    $('a.selected', form).removeClass('selected');
+                    $('input[name="source"]', form).val(target.attr('class'));
+                    target.addClass('selected');
+                });
+
+                // Import button
+                $('#browse_contacts input.import_btn').click(function() {
+                    var dialog = $('#import_contacts').dialog({
+                        buttons: {
+                            'Import': function() {
+                                that.submit_import_contacts(this);
+                            },
+                            'Cancel': function() {
+                                $(this).dialog('close');
+                            }
+                        },
+                        width:600
+                    });
+                    dialog.dialog('open');
+                });
+
                 // New contact button
                 $('#browse_contacts input.new_contact_btn').click(function() {
                     var new_contact_el = $('#new_contact_form_template tr').clone();
@@ -379,6 +500,7 @@ var index_page = {
                     });
                 });
 
+                // Letter filter on the left of table
                 $('#browse_contacts ul.letter_filter li').click(function() {
                     var target = $(this);
                     target.parent('ul').find('li.selected').removeClass('selected');
