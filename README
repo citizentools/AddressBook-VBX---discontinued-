@@ -6,3 +6,17 @@ June 16, 2010
 Allows you to store your contacts and also have a nifty page for searching and contacting your contacts.
 
 Working on importing contacts.
+
+TODO
+----
+- Import contacts from Yahoo
+- Import contacts from Windows Live
+- Import contacts from Facebook
+- Tagging
+- Grouping of contacts
+- Make import smarter by updating data based on email
+- Fix search submit frequency
+- IE and Firefox with placeholders
+- Hash change for page and search
+- [BUG] Google import has wrong data associated with the wrong users
+- Be able to upload and change profile images

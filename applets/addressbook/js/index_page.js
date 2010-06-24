@@ -17,7 +17,7 @@ var index_page = {
         that.browse_contacts_table = $('#browse_contacts table.datatable').tw_table(
             // {{{
             base_url + 'p/addressbook?op=contacts/get',
-            { onServerData: onServerCall, sort_by:[[1, 'asc']] },
+            { limit:10, onServerData:onServerCall, sort_by:[[1, 'asc']], pagination_type:'full_numbers' },
             {
                 bAutoWidth: true,
                 aoColumns: [
@@ -71,7 +71,6 @@ var index_page = {
                     { sName:'updated', bVisible:false },
                     { sName:'user_id', bVisible:false }
                 ],
-                sLimit:20,
                 fnRowCallback: function(nRow, aData, iDisplayIndex) {
                     $(nRow).addClass('contact_' + aData[5]);
                     return nRow;
@@ -82,7 +81,7 @@ var index_page = {
         that.recent_contacts_table = $('#recent_contacts table.datatable').tw_table(
             // {{{
             base_url + 'p/addressbook?op=contacts/get',
-            { onServerData:onServerCall, limit:5, sort_by:[[0, 'desc']] },
+            { limit:5, onServerData:onServerCall, sort_by:[[0, 'desc']] },
             {
                 aoColumns: [
                     { sName:'profile_img', sWidth:'50px', fnRender:function(oObj) { return '<div class="profile_img"></div>'; }},
@@ -114,9 +113,7 @@ var index_page = {
                     { sName:'user_id', bVisible:false }
                 ],
                 bFilter: false,
-                bLengthChange: false,
-                bInfo: false,
-                bPaginate: false
+                bInfo: false
             }
         ); // }}}
 
@@ -225,7 +222,7 @@ var index_page = {
     }, // }}}
 
     submit_import_contacts: function(dialog)
-    {
+    { // {{{
         var form = $('#import_contacts'); 
         var errors = [];
 
@@ -247,6 +244,11 @@ var index_page = {
             errors.push({
                 name:'source',
                 msg:'Source is required.'
+            });
+        } else if(source.val() != 'gmail') {
+            errors.push({
+                name:'source',
+                msg:'At this time,  Address Book can import contacts from Google.'
             });
         }
 
@@ -285,7 +287,7 @@ var index_page = {
         } else {
             parse_errors(errors);
         }
-    },
+    }, // }}}
 
     submit_new_contact: function() 
     { // {{{
@@ -368,7 +370,8 @@ var index_page = {
         tr.find('input.edit_active').removeClass('edit_active').addClass('edit_inactive');
     }, // }}}
 
-    render: function(name) {
+    render: function(name) 
+    { // {{{
         var that = index_page;
 
         switch(name) {
@@ -461,7 +464,7 @@ var index_page = {
                     var form = $('#import_contacts');
 
                     $('a.selected', form).removeClass('selected');
-                    $('input[name="source"]', form).val(target.attr('class'));
+                    $('input[name="source"]', form).val(target.attr('class').split(' ')[0]);
                     target.addClass('selected');
                 });
 
@@ -519,5 +522,5 @@ var index_page = {
                 that.render('browse_contacts');
                 break;
         }
-    }
+    } // }}}
 }

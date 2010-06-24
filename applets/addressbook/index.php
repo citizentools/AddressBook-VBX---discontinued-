@@ -1,5 +1,4 @@
 <?php
-
 $CI =& get_instance();
 $op = @$_REQUEST['op'];
 $user_id = $CI->session->userdata('user_id');
@@ -37,8 +36,11 @@ function get_data($table, $R=NULL)
     }
 
     $CI->db->stop_cache();
-
     $total = $CI->db->count_all_results($table);
+    if(@$R['iDisplayLength'] != -1) {
+        $CI->db->limit($R['iDisplayLength'], @$R['iDisplayStart'] ? $R['iDisplayStart'] : 0);
+    }
+
     $res = $CI->db->get($table);
 
     $rows = array();
@@ -100,7 +102,7 @@ else if($op == 'contacts/get' || $op == 'contact/get')
 } // }}}
 
 else if($op == 'contacts/import' || $op == 'contact/import') 
-{
+{ // {{{
     try {
         $source = @$_REQUEST['source'];
         $email = @$_REQUEST['email'];
@@ -243,7 +245,7 @@ else if($op == 'contacts/import' || $op == 'contact/import')
                 break;
         }
     }
-}
+} // }}}
 
 else if($op == 'contacts/new' || $op =='contact/new') 
 { // {{{
@@ -400,6 +402,17 @@ foreach($sqls as $sql) {
 ?>
 <style>
 table { width:100%; }
+div.dataTables_paginate { text-align:right; }
+div.dataTables_info { float:left; line-height:20px; }
+div.dataTables_paginate.paging_two_button div[title="Previous"] { line-height:20px; height:20px; width:20px; margin-left:2px; background:url(<?php echo base_url() ?>plugins/AddressBook-VBX/assets/img/arrows_prev.png); } 
+div.dataTables_paginate.paging_two_button div[title="Next"] { line-height:20px; height:20px; width:20px; margin-left:2px; background:url(<?php echo base_url() ?>plugins/AddressBook-VBX/assets/img/arrows_next.png); } 
+div.dataTables_paginate.paging_two_button div[title] { display:inline-block; }
+div.dataTables_paginate.paging_two_button div[title]:hover { cursor:pointer; }
+div.dataTables_paginate.paging_full_numbers span.paginate_button, 
+    div.dataTables_paginate.paging_full_numbers span.paginate_active { display:inline-block; line-height:20px; margin-left:2px; text-align:center; background-color:#ccc; padding-left:5px; padding-right:5px; }
+div.dataTables_paginate.paging_full_numbers span.paginate_button:hover, 
+    div.dataTables_paginate.paging_full_numbers span.paginate_active:hover { cursor:pointer; background-color:#333; color:white; }
+div.dataTables_paginate.paging_full_numbers span.paginate_active { color:white; background-color:#333; }
 div.dataTables_processing { position:absolute; top:10px; right:40px; }
 div.dataTables_length { float:left; visibility:hidden; }
 div.dataTables_filter { text-align:right; }
@@ -446,11 +459,9 @@ span.err { color:red; font-size:10px; display:block; margin-bottom:3px; }
 #import_contacts div.import_source a img { width:150px; vertical-align:middle; }
 #import_contacts div.import_form { margin-top:20px; }
 
-#list_of_groups { display:none; }
 #list_of_groups th { padding:0px; visibility:hidden; }
 #list_of_groups input.new_group_btn { float:right; }
 
-#list_of_tags { display:none; }
 #list_of_tags th { padding:0px; visibility:hidden; }
 #list_of_tags input.new_tag_btn { float:right; }
 
@@ -556,11 +567,13 @@ ul.errors.li { margin:2px; }
 
                     <div id="import_contacts" class="dialog" title="Import Contacts" style="display:none;">
                         <div class="import_source">
-                            <a class="gmail"><img src="http://www.google.com/intl/en_ALL/images/srpr/logo1w.png" /></a>
-                            <a class="yahoo"><img src="http://l.yimg.com/a/i/ww/met/yahoo_logo_us_061509.png" /></a>
-                            <a class="msn"><img src="http://col.stb.s-msn.com/i/BA/F7AFD6FD9371ACDFE1873AA174F5E.png" /></a>
+                            <p>Currently only the Address Book can only import contacts from Google.</p>
+
+                            <a class="gmail selected"><img src="http://www.google.com/intl/en_ALL/images/srpr/logo1w.png" /></a>
+                            <a class="yahoo disabled" style="opacity:.2"><img src="http://l.yimg.com/a/i/ww/met/yahoo_logo_us_061509.png" /></a>
+                            <a class="msn disabled" style="opacity:.2"><img src="http://col.stb.s-msn.com/i/BA/F7AFD6FD9371ACDFE1873AA174F5E.png" /></a>
                         </div>
-                        <input name="source" type="hidden" />
+                        <input name="source" type="hidden" value="gmail" />
 
                         <div class="import_form">
                             <fieldset class="vbx-input-container">
