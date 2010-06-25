@@ -14,6 +14,12 @@ var index_page = {
     initialize: function() {
         var that = index_page;
 
+        // Add window resize event
+        $(window).resize(function() {
+            var width = $('#browse_contacts').width() - 30;
+            $('#browse_contacts table.datatable').css('width', width);
+        });
+
         that.browse_contacts_table = $('#browse_contacts table.datatable').tw_table(
             // {{{
             base_url + 'p/addressbook?op=contacts/get',
@@ -23,7 +29,7 @@ var index_page = {
                 aoColumns: [
                     { sName:'profile_img', sWidth:'50px', fnRender:function(oObj) { return '<div class="profile_img"></div>'; } },
                     { sName:'first_name', fnRender:function(oObj) { 
-                        return '<input name="name" class="edit_inactive" type="text" value="' + oObj.aData[1] + ' ' + oObj.aData[4] + '" readonly="readonly" place="Name" />' +
+                        return '<input name="name" class="edit_inactive" type="text" value="' + (oObj.aData[1] + ' ' + oObj.aData[4]).trim() + '" readonly="readonly" placeholder="Name" />' +
                         '<input name="title" class="edit_inactive" type="text" value="' + oObj.aData[6] + '" readonly="readonly" placeholder="Title" />' +
                         '<input name="company" class="edit_inactive" type="text" value="' + oObj.aData[7] + '" readonly="readonly" placeholder="Company" />';
                     }},
@@ -113,6 +119,7 @@ var index_page = {
                     { sName:'user_id', bVisible:false }
                 ],
                 bFilter: false,
+                bLengthChange: false,
                 bInfo: false
             }
         ); // }}}

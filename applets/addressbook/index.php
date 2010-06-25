@@ -1,7 +1,12 @@
 <?php
 $CI =& get_instance();
+$plugin = OpenVBX::$currentPlugin;
 $op = @$_REQUEST['op'];
 $user_id = $CI->session->userdata('user_id');
+
+if(!function_exists('json_encode')) {
+    include($plugin->plugin_path.'/vendors/json.php');
+}
 
 function get_data($table, $R=NULL) 
 { // {{{
@@ -25,6 +30,8 @@ function get_data($table, $R=NULL)
                 $CI->db->like('phone', $s);
             } else if(strlen($s) == 1) {
                 $CI->db->like('first_name', $s, 'after');
+            } else if(preg_match_all('/([a-z 0-9]+)(>*<*!*:*)([a-z 0-9]+),*/', $s, $matches, PREG_SET_ORDER)) {
+                error_log(json_encode($matches));
             } else {
                 $CI->db->like('first_name', $s);
                 $CI->db->or_like('last_name', $s);
@@ -185,16 +192,17 @@ else if($op == 'contacts/import' || $op == 'contact/import')
 
             if($ch_info['http_code'] == 200) {
                 $results = json_decode($results);
-                $new_contact = array();
                 foreach($results->feed->entry as $contact) {
+                    $new_contact = array();
+
                     $name = $contact->title->{'$t'};
                     if(!empty($name)) {
                         $space = strrpos($name, ' ');
                         if($space === FALSE) {
-                            $new_contact['first_name'] = $name;
+                            $new_contact['first_name'] = trim($name);
                         } else {
-                            $new_contact['first_name'] = substr($name, 0, $space);
-                            $new_contact['last_name'] = substr($name, $space + 1);
+                            $new_contact['first_name'] = trim(substr($name, 0, $space));
+                            $new_contact['last_name'] = trim(substr($name, $space + 1));
                         }
                     }
 
@@ -204,7 +212,13 @@ else if($op == 'contacts/import' || $op == 'contact/import')
                     $email = $contact->{'gd$email'}[0]->address;
                     if(!empty($email)) $new_contact['email'] = $email;
 
-                    $CI->db->insert('addressbook_contacts', (array) $new_contact);
+                    $new_contact = (array) $new_contact;
+                    $chk_contact = $CI->db->get_where('addressbook_contacts', array('email' => $new_contact['email']))->row();
+                    if(!empty($chk_contact)) {
+                        $CI->db->update('addressbook_contacts', $new_contact, array('id' => $chk_contact->id));
+                    } else {
+                        $CI->db->insert('addressbook_contacts', $new_contact);
+                    }
                 }
 
                 throw new Exception('SUCCESS');
@@ -402,6 +416,7 @@ foreach($sqls as $sql) {
 ?>
 <style>
 table { width:100%; }
+table.datatable { margin-bottom:2px; }
 div.dataTables_paginate { text-align:right; }
 div.dataTables_info { float:left; line-height:20px; }
 div.dataTables_paginate.paging_two_button div[title="Previous"] { line-height:20px; height:20px; width:20px; margin-left:2px; background:url(<?php echo base_url() ?>plugins/AddressBook-VBX/assets/img/arrows_prev.png); } 
@@ -414,7 +429,7 @@ div.dataTables_paginate.paging_full_numbers span.paginate_button:hover,
     div.dataTables_paginate.paging_full_numbers span.paginate_active:hover { cursor:pointer; background-color:#333; color:white; }
 div.dataTables_paginate.paging_full_numbers span.paginate_active { color:white; background-color:#333; }
 div.dataTables_processing { position:absolute; top:10px; right:40px; }
-div.dataTables_length { float:left; visibility:hidden; }
+div.dataTables_length { float:left; }
 div.dataTables_filter { text-align:right; }
 
 input[type="button"].edit_inactive { visibility:hidden; }
@@ -659,11 +674,11 @@ var base_url = '<?php echo base_url() ?>';
 var user_numbers = <?php echo json_encode($user_numbers) ?>;
 </script>
 
-<?php $CI->template->add_js('plugins/AddressBook-VBX/assets/js/twilio/datatables/jquery.dataTables.min.js'); ?>
-<?php $CI->template->add_js('plugins/AddressBook-VBX/assets/js/twilio/twilio.js'); ?>
-<?php $CI->template->add_js('plugins/AddressBook-VBX/assets/js/twilio/jquery.tw_table.js'); ?>
+<?php OpenVBX::addJS('assets/js/twilio/datatables/jquery.dataTables.min.js'); ?>
+<?php OpenVBX::addJS('assets/js/twilio/twilio.js'); ?>
+<?php OpenVBX::addJS('assets/js/twilio/jquery.tw_table.js'); ?>
 
-<?php $CI->template->add_js('plugins/AddressBook-VBX/applets/addressbook/js/index_page.js'); ?>
-<?php $CI->template->add_js('plugins/AddressBook-VBX/applets/addressbook/js/index_init.js'); ?>
+<?php OpenVBX::addJS('applets/addressbook/js/index_page.js'); ?>
+<?php OpenVBX::addJS('applets/addressbook/js/index_init.js'); ?>
 
 <?php endif; ?>
