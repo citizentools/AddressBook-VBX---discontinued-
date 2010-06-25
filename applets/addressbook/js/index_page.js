@@ -25,7 +25,7 @@ function format_phone(str) {
 
 var search_timer = null;
 
-var addressbook_app {
+var addressbook_app = {
     version: 1.1
 };
 
