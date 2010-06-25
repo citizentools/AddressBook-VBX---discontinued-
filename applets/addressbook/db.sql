@@ -1,4 +1,4 @@
-CREATE TABLE `addressbook_contacts` (
+CREATE TABLE IF NOT EXISTS `addressbook_contacts` (
 `id` int(11) NOT NULL AUTO_INCREMENT,
 `first_name` varchar(150) DEFAULT NULL,
 `last_name` varchar(150) DEFAULT NULL,
