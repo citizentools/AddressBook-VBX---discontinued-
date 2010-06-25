@@ -5,6 +5,26 @@ if(!placeholder_support) {
     });
 }
 
+function format_phone(str) {
+    var text_phone = '';
+
+    if(str.length == 10) {
+        var parsed = str.match(/^([0-9]{3})([0-9]{3})([0-9]{4})$/);
+        if(parsed) text_phone  = '(' + parsed[1] + ') ' + parsed[2] + '-' + parsed[3];
+        else text_phone = str;
+    } else if(str.length == 11) {
+        var parsed = str.match(/^1([0-9]{3})([0-9]{3})([0-9]{4})$/);
+        if(parsed) text_phone  = '1 (' + parsed[1] + ') ' + parsed[2] + '-' + parsed[3];
+        else text_phone = str;
+    } else {
+        text_phone = str;
+    }
+
+    return text_phone;
+}
+
+var search_timer = null;
+
 var index_page = {
     browse_contacts_table: null,
     recent_contacts_table: null,
@@ -27,7 +47,11 @@ var index_page = {
             {
                 bAutoWidth: true,
                 aoColumns: [
-                    { sName:'profile_img', sWidth:'50px', fnRender:function(oObj) { return '<div class="profile_img"></div>'; } },
+                    { sName:'profile_img', sWidth:'50px', fnRender:function(oObj) { 
+                        return '<div class="profile_img">' +
+                            '<input class="change_btn edit_inactive" type="button" value="Chng" />' +
+                        '</div>'; 
+                    }},
                     { sName:'first_name', fnRender:function(oObj) { 
                         return '<input name="name" class="edit_inactive" type="text" value="' + (oObj.aData[1] + ' ' + oObj.aData[4]).trim() + '" readonly="readonly" placeholder="Name" />' +
                         '<input name="title" class="edit_inactive" type="text" value="' + oObj.aData[6] + '" readonly="readonly" placeholder="Title" />' +
@@ -35,9 +59,7 @@ var index_page = {
                     }},
                     { sName:'phone', fnRender:function(oObj) {
                         var phone = oObj.aData[2];
-                        var parsed = phone.match(/([0-9]{3})([0-9]{3})([0-9]{4})/);
-                        if(parsed) var text_phone  = '(' + parsed[1] + ') ' + parsed[2] + '-' + parsed[3];
-                        else var text_phone = phone;
+                        var text_phone = format_phone(phone);
 
                         var html = '<input name="phone" class="edit_inactive" type="text" value="' + text_phone + '" readonly="readonly" placeholder="Phone" />'; 
 
@@ -80,6 +102,18 @@ var index_page = {
                 fnRowCallback: function(nRow, aData, iDisplayIndex) {
                     $(nRow).addClass('contact_' + aData[5]);
                     return nRow;
+                },
+                fnInitComplete: function() {
+                    var search_in = $('#browse_contacts div.dataTables_filter input[type="text"]');
+                    search_in.unbind();
+                    search_in.bind('keyup', function() {
+                        var search_term = this.value;
+
+                        if(search_timer) clearTimeout(search_timer);
+                        search_timer = window.setTimeout(function() {
+                            that.browse_contacts_table.engine_obj.fnFilter(search_term);
+                        }, 500);
+                    });
                 }
             }
         ); // }}}
@@ -94,6 +128,7 @@ var index_page = {
                     { sName:'first_name', fnRender:function(oObj) { 
                         return '<span class="name">' + oObj.aData[1] + ' ' + oObj.aData[4] + '</span>' +
                         '<span class="company">' + oObj.aData[7] + '</span>' +
+                        '<span class="created">' + oObj.aData[18] + '</span>' +
                         '<div class="data">' +
                             '<span class="id">' + oObj.aData[5] + '</span>' +
                         '</div>';
@@ -362,6 +397,7 @@ var index_page = {
         );
     }, // }}}
 
+    // Make the current contact row active and editable in browse contacts
     contact_active: function(tr) 
     { // {{{
         var tr = $(tr);
@@ -370,6 +406,7 @@ var index_page = {
         tr.find('input.save_btn, input.cancel_btn').addClass('edit_active');
     }, // }}}
 
+    // Make the current contact row inactive and not editable in browse contacts
     contact_inactive: function(tr) 
     { // {{{
         var tr = $(tr);
@@ -515,6 +552,7 @@ var index_page = {
                     var target = $(this);
                     target.parent('ul').find('li.selected').removeClass('selected');
                     target.addClass('selected');
+                    $('#browse_contacts div.dataTables_filter input[type="text"]').val('');
                     that.browse_contacts_table.engine_obj.fnFilter(target.text() == 'All' ? '' : target.text());
                 });
                 break;

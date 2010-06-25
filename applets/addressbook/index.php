@@ -1,11 +1,13 @@
 <?php
 $CI =& get_instance();
 $plugin = OpenVBX::$currentPlugin;
+$plugin = $plugin->getInfo();
+$plugin_url = base_url().'plugins/'.$plugin['dir_name'];
 $op = @$_REQUEST['op'];
 $user_id = $CI->session->userdata('user_id');
 
 if(!function_exists('json_encode')) {
-    include($plugin->plugin_path.'/vendors/json.php');
+    include($plugin['plugin_path'].'/vendors/json.php');
 }
 
 function get_data($table, $R=NULL) 
@@ -16,40 +18,67 @@ function get_data($table, $R=NULL)
 
     $fields = $CI->db->list_fields($table);
     $CI->db->start_cache();
-    if(isset($R['iSortCol_0'])) {
-        for($i=0; $i<mysql_real_escape_string($R['iSortingCols']); $i++) {
-            $CI->db->order_by($fields[$R['iSortCol_'.$i]], $R['sSortDir_'.$i]);
-        }
-    }
 
-    if($table == 'addressbook_contacts') {
-        if(@$R['sSearch']) {
-            $s = $R['sSearch'];
+    if(@$R['sSearch']) {
+        $s = $R['sSearch'];
 
+        if(preg_match_all('/([a-z 0-9_]+)(\>|\<|\!:|:)+([^,:<>!]+)*,*/', $s, $matches, PREG_SET_ORDER)) {
+            foreach($matches as $match) {
+                $key = trim($match[1]);
+                $v = !$match[3] ? '' : trim($match[3]);
+
+                if(in_array($key, $fields)) {
+                    if($match[2] == '<') {
+                        $CI->db->where("$key < $v");
+                    } else if($match[2] == '>') {
+                        $CI->db->where("$key > $v");
+                    } else if($match[2] == '!:') {
+                        if(empty($v)) $CI->db->where("$key != ''");
+                        else $CI->db->not_like($key, $v);
+                    } else if($match[2] == ':') {
+                        $CI->db->like($key, $v);
+                    }
+                }
+            }
+        } else if($table == 'addressbook_contacts') {
             if(is_numeric($s) && strlen($s) >= 7) {
                 $CI->db->like('phone', $s);
             } else if(strlen($s) == 1) {
-                $CI->db->like('first_name', $s, 'after');
-            } else if(preg_match_all('/([a-z 0-9]+)(>*<*!*:*)([a-z 0-9]+),*/', $s, $matches, PREG_SET_ORDER)) {
-                error_log(json_encode($matches));
-            } else {
+                $CI->db->where("first_name >= '$s'");
+                if($s != 'z') $CI->db->where("first_name < '".chr(ord($s) + 1)."'");
+            } else if(strlen($s) < 6) { 
                 $CI->db->like('first_name', $s);
                 $CI->db->or_like('last_name', $s);
                 $CI->db->or_like('email', $s);
                 $CI->db->or_like('title', $s);
                 $CI->db->or_like('phone', $s);
+            } else {
+                $CI->db->where("MATCH (first_name, last_name, email, phone, company, title) AGAINST ('$s')", NULL, FALSE);
             }
         }
     }
 
     $CI->db->stop_cache();
     $total = $CI->db->count_all_results($table);
+
+    // Order
+    if($table == 'addressbook_contacts') {
+        $CI->db->select("*, IF(first_name IS NULL or first_name='', 1, 0) AS nulltest", FALSE);
+        $CI->db->order_by('nulltest asc');
+    }
+
+    if(isset($R['iSortCol_0'])) {
+        for($i=0; $i<mysql_real_escape_string($R['iSortingCols']); $i++) {
+            $CI->db->order_by($fields[$R['iSortCol_'.$i]], $R['sSortDir_'.$i]);
+        }
+    }
+
+    // Limit
     if(@$R['iDisplayLength'] != -1) {
         $CI->db->limit($R['iDisplayLength'], @$R['iDisplayStart'] ? $R['iDisplayStart'] : 0);
     }
 
     $res = $CI->db->get($table);
-
     $rows = array();
     foreach($res->result_array() as $row) {
         $parsed_row = array();
@@ -215,8 +244,10 @@ else if($op == 'contacts/import' || $op == 'contact/import')
                     $new_contact = (array) $new_contact;
                     $chk_contact = $CI->db->get_where('addressbook_contacts', array('email' => $new_contact['email']))->row();
                     if(!empty($chk_contact)) {
+                        $new_contact['updated'] = gmdate('Y-m-d H:i:s');
                         $CI->db->update('addressbook_contacts', $new_contact, array('id' => $chk_contact->id));
                     } else {
+                        $new_contact['created'] = gmdate('Y-m-d H:i:s');
                         $CI->db->insert('addressbook_contacts', $new_contact);
                     }
                 }
@@ -408,7 +439,7 @@ else if($op == 'tags/update' || $op == 'tag/update')
     <JSON_DATA><?php echo json_encode($results) ?></JSON_DATA>
 <?php else: ?>
 <?php
-$sqls = file_get_contents('plugins/AddressBook-VBX/applets/addressbook/db.sql');
+$sqls = file_get_contents($plugin['plugin_path'].'/applets/addressbook/db.sql');
 $sqls = explode(';', $sqls);
 foreach($sqls as $sql) {
     if(trim($sql) != '') $CI->db->query($sql);
@@ -419,8 +450,8 @@ table { width:100%; }
 table.datatable { margin-bottom:2px; }
 div.dataTables_paginate { text-align:right; }
 div.dataTables_info { float:left; line-height:20px; }
-div.dataTables_paginate.paging_two_button div[title="Previous"] { line-height:20px; height:20px; width:20px; margin-left:2px; background:url(<?php echo base_url() ?>plugins/AddressBook-VBX/assets/img/arrows_prev.png); } 
-div.dataTables_paginate.paging_two_button div[title="Next"] { line-height:20px; height:20px; width:20px; margin-left:2px; background:url(<?php echo base_url() ?>plugins/AddressBook-VBX/assets/img/arrows_next.png); } 
+div.dataTables_paginate.paging_two_button div[title="Previous"] { line-height:20px; height:20px; width:20px; margin-left:2px; background:url(<?php echo $plugin_url ?>/assets/img/arrows_prev.png); } 
+div.dataTables_paginate.paging_two_button div[title="Next"] { line-height:20px; height:20px; width:20px; margin-left:2px; background:url(<?php echo $plugin_url ?>/assets/img/arrows_next.png); } 
 div.dataTables_paginate.paging_two_button div[title] { display:inline-block; }
 div.dataTables_paginate.paging_two_button div[title]:hover { cursor:pointer; }
 div.dataTables_paginate.paging_full_numbers span.paginate_button, 
@@ -457,7 +488,8 @@ span.err { color:red; font-size:10px; display:block; margin-bottom:3px; }
 
 #browse_contacts th { padding:0px; visibility:hidden; }
 #browse_contacts td { vertical-align:top; }
-#browse_contacts div.profile_img { background:url(<?php echo base_url() ?>plugins/AddressBook-VBX/assets/img/profile_img.jpg); border:1px solid gray; width:50px; height:50px; }
+#browse_contacts div.profile_img { background:url(<?php echo $plugin_url ?>/assets/img/profile_img.jpg); border:1px solid gray; width:50px; height:50px; line-height:50px; text-align:center; }
+#browse_contacts div.profile_img > * { vertical-align:middle; }
 #browse_contacts tr input[name="name"] { width:95%; }
 #browse_contacts tr input[name="company"] { display:block; font-size:10px; width:95%; }
 #browse_contacts tr input[name="title"] { display:block; font-size:10px; width:95%; }
@@ -482,7 +514,7 @@ span.err { color:red; font-size:10px; display:block; margin-bottom:3px; }
 
 #recent_contacts { margin-top:0px; }
 #recent_contacts th { padding:0px; visibility:hidden; }
-#recent_contacts div.profile_img { background:url(<?php echo base_url() ?>plugins/AddressBook-VBX/assets/img/profile_img.jpg); border:1px solid gray; width:50px; height:50px; }
+#recent_contacts div.profile_img { background:url(<?php echo $plugin_url ?>/assets/img/profile_img.jpg); border:1px solid gray; width:50px; height:50px; }
 #recent_contacts tr span.company { display:block; font-size:10px;  }
 #recent_contacts tr span.title { display:block; font-size:10px; }
 
@@ -498,7 +530,7 @@ ul.errors.li { margin:2px; }
     <div class="vbx-table-section">
         <div id="index_page">
             <div class="side right">
-                <div id="list_of_groups" class="section">
+                <div id="list_of_groups" class="section" style="display:none;">
                     <!-- {{{ -->
                     <input class="new_group_btn" type="button" value=" + " /> 
                     <h3>Groups</h3>
@@ -523,7 +555,7 @@ ul.errors.li { margin:2px; }
                     <!-- }}} -->
                 </div>
 
-                <div id="list_of_tags" class="section">
+                <div id="list_of_tags" class="section" style="display:none;">
                     <!-- {{{ -->
                     <input class="new_tag_btn" type="button" value=" + " />
                     <h3>Tags</h3>
@@ -611,7 +643,9 @@ ul.errors.li { margin:2px; }
                         <table>
                             <tr>
                                 <td>
-                                    <div class="profile_img"></div>
+                                    <div class="profile_img" style="line-height:50px; text-align:center;">
+                                        <input type="button" value="Chng" style="vertical-align:middle;" />
+                                    </div>
                                 </td>
                                 <td>
                                     <input name="name" type="text" placeholder="Name" />
@@ -671,6 +705,7 @@ ul.errors.li { margin:2px; }
 
 <script>
 var base_url = '<?php echo base_url() ?>';
+var plugin_url = '<?php echo $plugin_url ?>';
 var user_numbers = <?php echo json_encode($user_numbers) ?>;
 </script>
 
