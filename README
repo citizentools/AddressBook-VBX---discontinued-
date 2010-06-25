@@ -1,11 +1,22 @@
-AddressBook OpenVBX Plugin
+AddressBook OpenVBX Plugin v1.1
 by Will Tran <wtran@twilio.com>
-June 16, 2010
------
+June 25, 2010
+----
 
 Allows you to store your contacts and also have a nifty page for searching and contacting your contacts.
 
-Working on importing contacts.
+v1.1 - June 25, 2010
+----
+- Import contacts from Gmail
+- Make import smarter by updating data based on email
+- Fix search submit frequency
+- [BUG] Google import has wrong data associated with the wrong users
+- Fixed paths to pull from OpenVBX so it can automatically note when users change the directory
+
+v1.0 - June 16, 2010
+----
+- Add new contacts
+- Search
 
 TODO
 ----
@@ -14,9 +25,6 @@ TODO
 - Import contacts from Facebook
 - Tagging
 - Grouping of contacts
-- Make import smarter by updating data based on email
-- Fix search submit frequency
 - IE and Firefox with placeholders
 - Hash change for page and search
-- [BUG] Google import has wrong data associated with the wrong users
 - Be able to upload and change profile images

@@ -25,6 +25,10 @@ function format_phone(str) {
 
 var search_timer = null;
 
+var addressbook_app {
+    version: 1.1
+};
+
 var index_page = {
     browse_contacts_table: null,
     recent_contacts_table: null,
