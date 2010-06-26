@@ -27,9 +27,7 @@ if(in_array($_FILES['file']['type'], $valid_mime)) {
     if($_FILES['file']['error'] > 0) {
         echo '<input type="button" value="Try Again" style="float:right;" onclick="location.href = location.href" /> Error uploading file.';
     } else {
-        if(!is_writable($target_path)) {
-            echo '<input type="button" value="Try Again" style="float:right;" onclick="location.href = location.href" /> Please make sure '.$plugin_path.' is writable.';
-        } else if(move_uploaded_file($_FILES['file']['tmp_name'], $target_path)) {
+        if(move_uploaded_file($_FILES['file']['tmp_name'], $target_path)) {
             echo '<input type="button" value="Close" onclick="parent.close_upload_iframe();" style="float:right;"/> Profile image uploaded. <script>parent.index_page.browse_contacts_table.engine_obj.fnDraw(); parent.close_upload_iframe();</script>';
         }
     }
