@@ -5,6 +5,8 @@ June 25, 2010
 
 Allows you to store your contacts and also have a nifty page for searching and contacting your contacts.
 
+IMPORTANT: Make sure the upload folder inside of this plugin is writable by the server
+
 v1.1 - June 25, 2010
 ----
 - Import contacts from Gmail
