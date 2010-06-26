@@ -5,7 +5,13 @@ if(!placeholder_support) {
     });
 }
 
-function format_phone(str) {
+function close_upload_iframe() 
+{
+    $('iframe').remove();
+}
+
+function format_phone(str) 
+{ // {{{
     var text_phone = '';
 
     if(str.length == 10) {
@@ -21,7 +27,7 @@ function format_phone(str) {
     }
 
     return text_phone;
-}
+} // }}}
 
 var search_timer = null;
 
@@ -52,9 +58,11 @@ var index_page = {
                 bAutoWidth: true,
                 aoColumns: [
                     { sName:'profile_img', sWidth:'50px', fnRender:function(oObj) { 
-                        return '<div class="profile_img">' +
-                            '<input class="change_btn edit_inactive" type="button" value="Chng" />' +
-                        '</div>'; 
+                        var html = '<div class="profile_img">';
+                        html = html + '<img src="' + (oObj.aData[0] != '' ? oObj.aData[0] : plugin_url + '/assets/img/profile_img.jpg') + '" />';
+                        html = html + '<input class="change_btn edit_inactive" type="button" value="Chng" />';
+                        html = html + '</div>'; 
+                        return html;
                     }},
                     { sName:'first_name', fnRender:function(oObj) { 
                         return '<input name="name" class="edit_inactive" type="text" value="' + (oObj.aData[1] + ' ' + oObj.aData[4]).trim() + '" readonly="readonly" placeholder="Name" />' +
@@ -128,7 +136,12 @@ var index_page = {
             { limit:5, onServerData:onServerCall, sort_by:[[0, 'desc']] },
             {
                 aoColumns: [
-                    { sName:'profile_img', sWidth:'50px', fnRender:function(oObj) { return '<div class="profile_img"></div>'; }},
+                    { sName:'profile_img', sWidth:'50px', fnRender:function(oObj) { 
+                        var html = '<div class="profile_img">';
+                        html = html + '<img src="' + (oObj.aData[0] != '' ? oObj.aData[0] : plugin_url + '/assets/img/profile_img.jpg') + '" />';
+                        html = html + '</div>'; 
+                        return html;
+                    }},
                     { sName:'first_name', fnRender:function(oObj) { 
                         return '<span class="name">' + oObj.aData[1] + ' ' + oObj.aData[4] + '</span>' +
                         '<span class="company">' + oObj.aData[7] + '</span>' +
@@ -318,7 +331,6 @@ var index_page = {
                 { password:password.val(), email:email.val(), source:source.val() },
                 function(resp) {
                     resp = resp.match(/JSON_DATA\>(.*)\<\/JSON_DATA/)[1];
-                    console.log(resp);
                     resp = eval("(" + resp + ")");
                     if(resp.key == 'SUCCESS') {
                         $(dialog).dialog('close');
@@ -437,6 +449,17 @@ var index_page = {
                     // Delete button
                     else if(target.hasClass('del_btn')) {
                         that.submit_delete_contact(this);
+                    }
+
+                    // Change profile image button
+                    else if(target.hasClass('change_btn')) {
+                        var id = $('div.data input[name="id"]', this).val();
+
+                        var upload_iframe = $('<iframe></iframe')
+                            .attr({ src:plugin_url+'/upload_profile_img.php?contact_id=' + id, frameborder:0 })
+                            .css({ top:target.offset().top - 3, left:target.offset().left, position:'absolute' })
+                            .addClass('upload_iframe')
+                            .appendTo($('div.vbx-content-main'));
                     }
 
                     // Cancel button

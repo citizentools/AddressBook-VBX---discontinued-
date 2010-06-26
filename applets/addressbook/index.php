@@ -13,6 +13,9 @@ if(!function_exists('json_encode')) {
 function get_data($table, $R=NULL) 
 { // {{{
     $CI =& get_instance();
+    $plugin = OpenVBX::$currentPlugin;
+    $plugin = $plugin->getInfo();
+    $plugin_url = base_url().'plugins/'.$plugin['dir_name'];
 
     if(empty($R)) $R = $_REQUEST;
 
@@ -86,8 +89,23 @@ function get_data($table, $R=NULL)
             if(empty($v)) $parsed_row[] = '';
             else $parsed_row[] = $v;
         }
+
+        if($table == 'addressbook_contacts') {
+            // Get profile_img
+            $filename = $plugin['plugin_path'].'/upload/'.$row['id'];
+
+            if(is_file($filename)) {
+                $parsed_row[16] = $plugin_url.'/upload/'.$row['id'];
+            } else {
+                $parsed_row[16] = '';
+            }
+        }
+
         $rows[] = $parsed_row;
     }
+
+    error_log(json_encode($fields));
+    error_log(json_encode($rows));
 
     $results = array(
         'sEcho'=>intval(@$R['sEcho']),
@@ -436,7 +454,7 @@ else if($op == 'tags/update' || $op == 'tag/update')
 ?>
 
 <?php if(!empty($op)): ?>
-    <JSON_DATA><?php echo json_encode($results) ?></JSON_DATA>
+    <JSON_DATA><?php echo @$results ? json_encode($results) : '' ?></JSON_DATA>
 <?php else: ?>
 <?php
 $sqls = file_get_contents($plugin['plugin_path'].'/applets/addressbook/db.sql');
@@ -476,6 +494,8 @@ div.section > input.new_btn { float:right; }
 div.side.right { float:right; width:250px; }
 div.side div.section:first-child { margin-top:0px; }
 
+iframe.upload_iframe { background-color:white; border:1px solid gray; width:470px; height:23px; overflow:hidden; }
+
 table.datatable th { background-color:#333; color:white; font-size:10px; text-transform:uppercase; vertical-align:bottom !important; padding:5px; }
 table.datatable td { padding:5px; }
 table.datatable tr {}
@@ -488,8 +508,10 @@ span.err { color:red; font-size:10px; display:block; margin-bottom:3px; }
 
 #browse_contacts th { padding:0px; visibility:hidden; }
 #browse_contacts td { vertical-align:top; }
-#browse_contacts div.profile_img { background:url(<?php echo $plugin_url ?>/assets/img/profile_img.jpg); border:1px solid gray; width:50px; height:50px; line-height:50px; text-align:center; }
+#browse_contacts div.profile_img { border:1px solid gray; width:50px; height:50px; line-height:50px; text-align:center; overflow:hidden; }
 #browse_contacts div.profile_img > * { vertical-align:middle; }
+#browse_contacts div.profile_img > img { width:50px; }
+#browse_contacts div.profile_img input[value="Chng"] { position:absolute; left:45px; }
 #browse_contacts tr input[name="name"] { width:95%; }
 #browse_contacts tr input[name="company"] { display:block; font-size:10px; width:95%; }
 #browse_contacts tr input[name="title"] { display:block; font-size:10px; width:95%; }
@@ -514,9 +536,12 @@ span.err { color:red; font-size:10px; display:block; margin-bottom:3px; }
 
 #recent_contacts { margin-top:0px; }
 #recent_contacts th { padding:0px; visibility:hidden; }
-#recent_contacts div.profile_img { background:url(<?php echo $plugin_url ?>/assets/img/profile_img.jpg); border:1px solid gray; width:50px; height:50px; }
+#recent_contacts div.profile_img { border:1px solid gray; width:50px; height:50px; text-align:center; overflow:hidden; line-height:50px; }
+#recent_contact div.profile_img > * { vertical-align:middle; }
+#recent_contact div.profile_img > img { width:50px; }
 #recent_contacts tr span.company { display:block; font-size:10px;  }
 #recent_contacts tr span.title { display:block; font-size:10px; }
+#recent_contacts tr span.created { font-size:10px; }
 
 ul.errors { color:red; }
 ul.errors.li { margin:2px; }
