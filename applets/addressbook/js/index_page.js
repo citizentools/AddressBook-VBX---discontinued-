@@ -272,7 +272,7 @@ var index_page = {
                     resp = resp.match(/JSON_DATA\>(.*)\<\/JSON_DATA/)[1];
                     resp = eval("(" + resp + ")");
                     if(resp.key == 'SUCCESS') {
-                        that.browse_contacts_table.engine_obj.fnDraw();
+                        that.browse_contacts_table.engine_obj.fnDraw(false);
                     }
                 } catch(e) {}
             },
@@ -397,6 +397,8 @@ var index_page = {
         var tr = $(tr);
         var form_inputs = $('*[name]', tr);
 
+        that.contact_inactive(tr);
+
         $.post(
             base_url + 'p/addressbook?op=contact/update',
             form_inputs.serialize(),
@@ -405,7 +407,7 @@ var index_page = {
                     resp = resp.match(/JSON_DATA\>(.*)\<\/JSON_DATA/)[1];
                     resp = eval("(" + resp + ")");
                     if(resp.key == 'SUCCESS') {
-                        that.browse_contacts_table.engine_obj.fnDraw();
+                        that.browse_contacts_table.engine_obj.fnDraw(false);
                     }
                 } catch(e) {}
             },

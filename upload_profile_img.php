@@ -27,8 +27,10 @@ if(in_array($_FILES['file']['type'], $valid_mime)) {
     if($_FILES['file']['error'] > 0) {
         echo '<input type="button" value="Try Again" style="float:right;" onclick="location.href = location.href" /> Error uploading file.';
     } else {
-        if(move_uploaded_file($_FILES['file']['tmp_name'], $target_path)) {
-            echo '<input type="button" value="Close" onclick="parent.close_upload_iframe();" style="float:right;"/> Profile image uploaded. <script>parent.index_page.browse_contacts_table.engine_obj.fnDraw(); parent.close_upload_iframe();</script>';
+        if(@move_uploaded_file($_FILES['file']['tmp_name'], $target_path)) {
+            echo '<input type="button" value="Close" onclick="parent.close_upload_iframe();" style="float:right;"/> Profile image uploaded. <script>parent.index_page.browse_contacts_table.engine_obj.fnDraw(false); parent.close_upload_iframe();</script>';
+        } else {
+            echo '<input type="button" value="Try Again" style="float:right;" onclick="location.href = location.href" /> Please make sure the <b>upload</b> folder in the plugin is writable.';
         }
     }
 } else if($_FILES) {
