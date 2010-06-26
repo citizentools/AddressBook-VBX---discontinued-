@@ -12,6 +12,7 @@ v1.1 - June 25, 2010
 - Fix search submit frequency
 - [BUG] Google import has wrong data associated with the wrong users
 - Fixed paths to pull from OpenVBX so it can automatically note when users change the directory
+- Be able to upload and change profile images
 
 v1.0 - June 16, 2010
 ----
@@ -27,4 +28,3 @@ TODO
 - Grouping of contacts
 - IE and Firefox with placeholders
 - Hash change for page and search
-- Be able to upload and change profile images
